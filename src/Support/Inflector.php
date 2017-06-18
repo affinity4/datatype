@@ -356,6 +356,57 @@ class Inflector
     }
 
     /**
+     * Title case a phrase.
+     *
+     * Example:
+     * <code>
+     * Inflector::titleCase('It\'s_A_Title-With-The-Words But And Which Should Be Capitalized');
+     * // It's a Title-with-the-Words but and Which Should Be Capitalized
+     *
+     * Inflector::titleCase('It\'s_A_Title-With-The-Words But And Which Should Be Capitalized', 'conjunctions|be');
+     * // It's a Title-with-the-Words but and Which Should be Capitalized
+     * </code>
+     *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.3
+     *
+     * @param string $string
+     * @param string $lc_words
+     *
+     * @return string
+     */
+    public static function titleCase(string $string, string $lc_words = 'conjunctions')
+    {
+        $conjunctions = ['a', 'an', 'and', 'as', 'but', 'for', 'if', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'then', 'to', 'were', 'with', 'yet'];
+
+        $replace_underscores = str_replace('_', ' ', $string);
+
+        $replace_words_array = explode('|', $lc_words);
+
+        if (in_array('conjunctions', $replace_words_array)) {
+            $replace_words_array = array_merge($replace_words_array, $conjunctions);
+
+            $lc_words = implode('|', array_filter($replace_words_array, function ($item) {
+                return $item !== 'conjunctions';
+            }));
+        } else {
+            $lc_words = implode('|', $replace_words_array);
+        }
+
+        $split_by_spaces = explode(' ', $replace_underscores);
+        $words = [];
+
+        foreach ($split_by_spaces as $word) {
+            $words[] = preg_replace_callback('/(-)?(' . $lc_words . ')/i', function ($match) {
+                return $match[1] . lcfirst($match[2]);
+            }, $word);
+        }
+
+        return implode(' ', $words);
+    }
+
+    /**
      * Returns a word in plural form.
      *
      * @param string $word The word in singular form.
@@ -365,6 +416,7 @@ class Inflector
     public static function pluralize($word)
     {
         $word = trim($word);
+
         // Uninflectable
         if (isset(self::getCacheStore('uninflectable')[$word])) {
             return self::$cache['uninflectable'][$word];
@@ -405,6 +457,8 @@ class Inflector
                 return self::$cache['plural'][$word];
             }
         }
+
+        return $word;
     }
 
     public static function singularize($word)
@@ -451,5 +505,7 @@ class Inflector
                 return self::$cache['singular'][$word];
             }
         }
+
+        return $word;
     }
 }

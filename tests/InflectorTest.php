@@ -106,6 +106,15 @@ class InflectorTest extends TestCase
         $this->assertEquals($expected, Inflector::upperCaseWords($string));
     }
 
+    public function testTitleCase()
+    {
+        $expected = 'It\'s a Title-with-the-Words but and Which Should Be Capitalized';
+        $string = 'It\'s_A_Title-With-The-Words But And Which Should Be Capitalized';
+
+        $this->assertEquals($expected, Inflector::titleCase($string));
+        $this->assertEquals('It\'s a Title-with-the-Words but and Which Should be Capitalized', Inflector::titleCase($string, 'conjunctions|be'));
+    }
+
     /**
      * @dataProvider vocabularyProvider
      *
