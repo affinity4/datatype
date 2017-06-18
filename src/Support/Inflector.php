@@ -409,6 +409,10 @@ class Inflector
     /**
      * Returns a word in plural form.
      *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.2
+     *
      * @param string $word The word in singular form.
      *
      * @return string The word in plural form.
@@ -461,6 +465,17 @@ class Inflector
         return $word;
     }
 
+    /**
+     * Returns the singular form of a word
+     *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.2
+     *
+     * @param $word
+     *
+     * @return string
+     */
     public static function singularize($word)
     {
         $word = trim($word);
@@ -507,5 +522,63 @@ class Inflector
         }
 
         return $word;
+    }
+
+    /**
+     * Returns the ordinal for of a number.
+     *
+     * Example:
+     * <code>
+     * Inflector::ordinalize(1); // 1st
+     * Inflector::ordinalize(2); // 2nd
+     * Inflector::ordinalize(3); // 3rd
+     * Inflector::ordinalize(4); // 4th
+     * Inflector::ordinalize(5); // 5th
+     * Inflector::ordinalize(6); // 6th
+     * Inflector::ordinalize(7); // 7th
+     * Inflector::ordinalize(8); // 8th
+     * Inflector::ordinalize(9); // 9th
+     * Inflector::ordinalize(10); // 10th
+     * </code>
+     *
+     * @param int $number
+     *
+     * @return string
+     */
+    public static function ordinalize(int $number)
+    {
+        if (in_array(($number % 100), range(11, 13))) {
+            return (string) $number . 'th';
+        } else {
+            switch (($number % 10)) {
+                case 1:
+                    return (string) $number . 'st';
+                    break;
+                case 2:
+                    return (string) $number . 'nd';
+                    break;
+                case 3:
+                    return (string) $number . 'rd';
+                default:
+                    return (string) $number . 'th';
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Return number form from ordinaized form of a number/date.
+     *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.3
+     *
+     * @param string $ordinal
+     *
+     * @return int
+     */
+    public function deordinalize(string $ordinal)
+    {
+        return (int) preg_replace('/^(\d+)(st|nd|rd|th)/i', '$1', $ordinal);
     }
 }
