@@ -141,7 +141,7 @@ class InflectorTest extends TestCase
      * @dataProvider ordinalProvider
      *
      * @param $number
-     * @param $expected
+     * @param $ordinal
      */
     public function testOrdinalize($number, $ordinal)
     {
@@ -150,6 +150,7 @@ class InflectorTest extends TestCase
 
     /**
      * @dataProvider ordinalProvider
+     *
      * @param $number
      * @param $ordinal
      */

@@ -577,7 +577,7 @@ class Inflector
      *
      * @return int
      */
-    public function deordinalize(string $ordinal)
+    public static function deordinalize(string $ordinal)
     {
         return (int) preg_replace('/^(\d+)(st|nd|rd|th)/i', '$1', $ordinal);
     }
