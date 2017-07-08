@@ -12,24 +12,160 @@ use Affinity4\Datatype\Str;
 class StrTest extends TestCase
 {
 	/**
-	 * @var
+	 * @dataProvider providerCropChars
+	 *
+	 * @param $data
 	 */
-	private $str;
-
-	/**
-	 * @var
-	 */
-	private $mockToString;
-
-	/**
-	 * Setup for tests
-	 */
-	public function setUp()
+	public function testCropChars($data)
 	{
-		$this->str = new Str;
-		$this->mockToString = $this->getMockBuilder('ToString')->setMethods(['__toString'])->getMock();
+		$this->assertEquals($data['expected'], Str::set($data['original'])->cropChars($data['at'], $data['append'], $data['flag'])->val);
 	}
 
+	/**
+	 * Data provider for testCropChars
+	 *
+	 * @return array
+	 */
+	public function providerCropChars()
+	{
+		return [
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 10,
+					'append'   => '...',
+					'flag'	   => Str::SOFT_CROP,
+					'expected' => 'one two th...'
+				]
+			],
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 10,
+					'append'   => null,
+					'flag' => Str::SOFT_CROP,
+					'expected' => 'one two th'
+				]
+			],
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 50,
+					'append'   => null,
+					'flag' => Str::SOFT_CROP,
+					'expected' => 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 50,
+					'append'   => null,
+					'flag' => Str::HARD_CROP,
+					'expected' => 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 50,
+					'append'   => '...',
+					'flag' => Str::SOFT_CROP,
+					'expected' => 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' => 'one two three four five six seven eight nine ten.',
+					'at'       => 50,
+					'append'   => '...',
+					'flag' => Str::HARD_CROP,
+					'expected' => 'one two three four five six seven eight nine te...'
+				]
+			],
+
+		];
+	}
+	/**
+	 * @dataProvider providerCropWords
+	 *
+	 * @param $data
+	 */
+	public function testCropWords($data)
+	{
+		$this->assertEquals($data['expected'], Str::set($data['original'])->cropWords($data['at'], $data['append'])->val);
+	}
+
+	/**
+	 * Data provider for testCropWords
+	 *
+	 * @return array
+	 */
+	public function providerCropWords()
+	{
+		return [
+			[
+				[
+					'original'	=> 'one two three four five six seven eight nine ten.',
+					'at'		=> 7,
+					'append'   	=> '...',
+					'expected' 	=> 'one two three four five six seven...'
+				]
+			],
+			[
+				[
+					'original' 	=> 'one two three four five six seven eight nine ten.',
+					'at'     	=> 7,
+					'append' 	=> null,
+					'expected' 	=> 'one two three four five six seven'
+				]
+			],
+			[
+				[
+					'original' 	=> 'one two three four five six seven eight nine ten.',
+					'at'		=> 12,
+					'append' 	=> null,
+					'expected' 	=> 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' 	=> 'one two three four five six seven eight nine ten.',
+					'at'		=> 12,
+					'append' 	=> null,
+					'expected' 	=> 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' 	=> 'one two three four five six seven eight nine ten.',
+					'at'		=> 12,
+					'append' 	=> '...',
+					'expected' 	=> 'one two three four five six seven eight nine ten.'
+				]
+			],
+			[
+				[
+					'original' 	=> 'one two three four five six seven eight nine ten.',
+					'at'		=> 12,
+					'append' 	=> '&ellip;',
+					'expected' 	=> 'one two three four five six seven eight nine ten.'
+				]
+			],
+
+		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->cropWords\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testCropWordsException()
+	{
+		Str::set(123)->cropWords(2, '...')->val;
+	}
+	
 	/**
 	 * Tests e method
 	 *
@@ -40,7 +176,17 @@ class StrTest extends TestCase
 	 */
 	public function testE($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->e()->string);
+		$this->assertEquals($expected, Str::set($value)->e()->val);
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->e\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testEException()
+	{
+		Str::set(123)->e()->val;
 	}
 
 	/**
@@ -53,7 +199,17 @@ class StrTest extends TestCase
 	 */
 	public function testEe($expected, $value)
 	{
-		$this->assertEquals($expected, Str::from($value)->ee()->string);
+		$this->assertEquals($expected, Str::set($value)->ee()->val);
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->ee\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testEeException()
+	{
+		Str::set(123)->ee()->val;
 	}
 
 	/**
@@ -69,12 +225,12 @@ class StrTest extends TestCase
 	}
 
 	/**
-	 * Test Str::from method
+	 * Test Str::set method
 	 */
-	public function testFrom()
+	public function testSet()
 	{
-		$this->assertInstanceOf(Str::class, Str::from('String'));
-		$this->assertEquals('String', Str::from('String')->string);
+		$this->assertInstanceOf(Str::class, Str::set('String'));
+		$this->assertEquals('String', Str::set('String')->val);
 	}
 
 	/**
@@ -88,9 +244,19 @@ class StrTest extends TestCase
 	 */
 	public function testFormat($format, $args, $expected)
 	{
-		$this->assertEquals('Hello Luke Watts', Str::from('Hello {} {}')->format('Luke', 'Watts')->string);
-		$this->assertEquals('Luke Watts is your name. How are you Mr. Watts?', Str::from('{} {} is your name. How are you Mr. {1}?')->format('Luke', 'Watts')->string);
-		$this->assertEquals($expected, Str::from($format)->format($args)->string);
+		$this->assertEquals('Hello Luke Watts', Str::set('Hello {} {}')->format('Luke', 'Watts')->val);
+		$this->assertEquals('Luke Watts is your name. How are you Mr. Watts?', Str::set('{} {} is your name. How are you Mr. {1}?')->format('Luke', 'Watts')->val);
+		$this->assertEquals($expected, Str::set($format)->format($args)->val);
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->format\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testFormatException()
+	{
+		Str::set(123)->format()->val;
 	}
 
 	/**
@@ -121,7 +287,17 @@ class StrTest extends TestCase
 	 */
 	public function testHtml($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->html()->string);
+		$this->assertEquals($expected, Str::set($value)->html()->val);
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->html\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testHtmlException()
+	{
+		Str::set(123)->html()->val;
 	}
 
 	/**
@@ -134,7 +310,17 @@ class StrTest extends TestCase
 	 */
 	public function testHtmlDecode($expected, $value)
 	{
-		$this->assertEquals($expected, Str::from($value)->htmlDecode()->string);
+		$this->assertEquals($expected, Str::set($value)->htmlDecode()->val);
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->htmlDecode\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testHtmlDecodeException()
+	{
+		Str::set(123)->htmlDecode()->val;
 	}
 
 	/**
@@ -150,36 +336,6 @@ class StrTest extends TestCase
 	}
 
 	/**
-	 * Test join method
-	 *
-	 * @dataProvider providerJoin
-	 *
-	 * @param $value
-	 * @param $glue
-	 * @param $expected
-	 */
-	public function testJoin($value, $glue, $expected)
-	{
-		$this->assertEquals($expected, Str::from($value)->join($glue)->string);
-	}
-
-	/**
-	 * Data Provider for testJoin method
-	 *
-	 * @return array
-	 */
-	public function providerJoin()
-	{
-		return [
-			[['one', 'two', 'three'], ' ', 'one two three'],
-			[[1, 2, 3], ' ', '1 2 3'],
-			[['one', 'two', 'three'], '+', 'one+two+three'],
-			[[1, 2, 3], '|', '1|2|3']
-
-		];
-	}
-
-	/**
 	 * Test lcFirst method
 	 *
 	 * @dataProvider providerLcFirst
@@ -189,7 +345,7 @@ class StrTest extends TestCase
 	 */
 	public function testLcFirst($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->lcFirst()->string);
+		$this->assertEquals($expected, Str::set($value)->lcFirst()->val);
 	}
 
 	/**
@@ -205,8 +361,17 @@ class StrTest extends TestCase
 			['One Two Three', 'one Two Three'],
 			['ONE TWO THREE', 'oNE TWO THREE'],
 			['123', '123'],
-			[123, 123]
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->lcFirst\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testLcFirstException()
+	{
+		Str::set(123)->lcFirst()->val;
 	}
 
 	/**
@@ -219,7 +384,7 @@ class StrTest extends TestCase
 	 */
 	public function testLength($value, $expected)
 	{
-		$this->assertEquals($expected, Str::length($value));
+		$this->assertEquals($expected, Str::set($value)->length()->val);
 	}
 
 	/**
@@ -235,9 +400,17 @@ class StrTest extends TestCase
 			['1', 1],
 			['', 0],
 			['123', 3],
-			[123, 3],
-			[false, false],
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->length\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testLengthException()
+	{
+		Str::set(123)->length()->val;
 	}
 
 	/**
@@ -250,7 +423,7 @@ class StrTest extends TestCase
 	 */
 	public function testLower($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->lower()->string);
+		$this->assertEquals($expected, Str::set($value)->lower()->val);
 	}
 
 	/**
@@ -266,18 +439,31 @@ class StrTest extends TestCase
 			['One Two Three', 'one two three'],
 			['ONE TWO THREE', 'one two three'],
 			['123', '123'],
-			[123, 123]
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->lower\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testLowerException()
+	{
+		Str::set(123)->lower()->val;
 	}
 
 	/**
 	 * Test for pos method
 	 *
 	 * @dataProvider providerPos
+	 *
+	 * @param $needle
+	 * @param $value
+	 * @param $expected
 	 */
-	public function testPos($needle, $haystack, $expected)
+	public function testPos($needle, $value, $expected)
 	{
-		$this->assertEquals($expected, Str::pos($needle, $haystack));
+		$this->assertEquals($expected, Str::set($value)->pos($needle)->val);
 	}
 
 	/**
@@ -305,7 +491,7 @@ class StrTest extends TestCase
 	 */
 	public function testSplit($string, $delimiter, $expected)
 	{
-		$this->assertEquals($expected, Str::from($string)->split($delimiter)->string);
+		$this->assertEquals($expected, Str::set($string)->split($delimiter)->val);
 	}
 
 	/**
@@ -332,7 +518,7 @@ class StrTest extends TestCase
 	 */
 	public function testToInt($string, $expected)
 	{
-		$this->assertEquals($expected, Str::toInt($string));
+		$this->assertEquals($expected, Str::set($string)->toInt()->val);
 	}
 
 	/**
@@ -367,7 +553,7 @@ class StrTest extends TestCase
 	 */
 	public function testUcFirst($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->ucFirst()->string);
+		$this->assertEquals($expected, Str::set($value)->ucFirst()->val);
 	}
 
 	/**
@@ -381,9 +567,18 @@ class StrTest extends TestCase
 			['One two three', 'One two three'],
 			['ONE TWO THREE', 'ONE TWO THREE'],
 			['one two three', 'One two three'],
-			[123, 123],
 			['123', '123'],
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->ucFirst\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testUcFirstException()
+	{
+		Str::set(123)->ucFirst()->val;
 	}
 
 	/**
@@ -396,7 +591,7 @@ class StrTest extends TestCase
 	 */
 	public function testUcWords($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->ucWords()->string);
+		$this->assertEquals($expected, Str::set($value)->ucWords()->val);
 	}
 
 	/**
@@ -411,9 +606,18 @@ class StrTest extends TestCase
 			['ONE TWO THREE', 'ONE TWO THREE'],
 			['one two three', 'One Two Three'],
 			['One two three', 'One Two Three'],
-			[123, 123],
 			['123', '123'],
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->ucWords\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testUcWordsException()
+	{
+		Str::set(123)->ucWords()->val;
 	}
 
 	/**
@@ -426,7 +630,7 @@ class StrTest extends TestCase
 	 */
 	public function testUpper($value, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->upper()->string);
+		$this->assertEquals($expected, Str::set($value)->upper()->val);
 	}
 
 	/**
@@ -441,9 +645,18 @@ class StrTest extends TestCase
 			['One Two Three', 'ONE TWO THREE'],
 			['One two three', 'ONE TWO THREE'],
 			['one two three', 'ONE TWO THREE'],
-			[123, 123],
 			['123', '123'],
 		];
+	}
+
+	/**
+	 * @expectedException \Affinity4\Datatype\Exception\DatatypeException
+	 *
+	 * @expectedExceptionMessageRegExp /^Value passed to (\\?[A-Z][a-z\d_]+)+::set\(\$val\)->upper\(\) must be of type 'string'. Type .* given\.$/
+	 */
+	public function testUpperException()
+	{
+		Str::set(123)->upper()->val;
 	}
 
 	/**
@@ -457,7 +670,7 @@ class StrTest extends TestCase
 	 */
 	public function testTrim($value, $character_mask, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->trim($character_mask)->string);
+		$this->assertEquals($expected, Str::set($value)->trim($character_mask)->val);
 	}
 
 	/**
@@ -489,7 +702,7 @@ class StrTest extends TestCase
 	 */
 	public function testTrimLeft($value, $character_mask, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->trimLeft($character_mask)->string);
+		$this->assertEquals($expected, Str::set($value)->trimLeft($character_mask)->val);
 	}
 
 	/**
@@ -521,7 +734,7 @@ class StrTest extends TestCase
 	 */
 	public function testTrimRight($value, $character_mask, $expected)
 	{
-		$this->assertEquals($expected, Str::from($value)->trimRight($character_mask)->string);
+		$this->assertEquals($expected, Str::set($value)->trimRight($character_mask)->val);
 	}
 
 	/**

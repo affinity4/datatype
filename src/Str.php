@@ -10,6 +10,8 @@
  */
 namespace Affinity4\Datatype;
 
+use Affinity4\Datatype\Exception\DatatypeException;
+
 /**
  * Str Class
  *
@@ -19,17 +21,89 @@ namespace Affinity4\Datatype;
  *
  * @package Affinity4\DataType
  */
-class Str
+class Str extends Datatype
 {
-    /**
-     * @var
-     */
-    private static $instance;
+    const HARD_CROP = true;
+    const SOFT_CROP = false;
 
     /**
-     * @var
+     * Crops a sentence to a number of characters and optionally appends a string to the end.
+     *
+     * Example:
+     * <code>
+     * $long_sentence = 'one two three four five six seven eight nine ten.';
+     * Str::set($long_sentence)->cropChars(13, '...'); // 'one two three...'
+     * Str::set($long_sentence)->cropChars(13, '...', Str::HARD_CROP); // 'one two th...'
+     * </code>
+     *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.4
+     *
+     * @param int  $at
+     * @param null $append
+     * @param bool $flag
+     *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return string
      */
-    public $string;
+    public function cropChars($at = 15, $append = null, $flag = Str::SOFT_CROP)
+    {
+        if (!is_string($this->val)) {
+            throw new DatatypeException(sprintf('Value passed to %s::set($val)->%s() must be of type \'%s\'. Type %s given.', __CLASS__, __FUNCTION__, 'string', gettype($this->val)));
+        }
+
+        // If Str::HARD_CROP then the $at limit will include the length of the $append string
+        // Otherwise the overall length will be the $at limit + $append length.
+        if ($flag === Str::HARD_CROP) {
+            $at = $at - strlen($append);
+        }
+
+        if (strlen($this->val) >= $at) {
+
+            $sentence = str_split($this->val, $at)[0];
+
+            $this->val = (is_string($append)) ? sprintf('%s%s', $sentence, $append) : $sentence;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Crops a sentence to a number of words and optionally appends a string to the end.
+     *
+     * Example:
+     * <code>
+     * $long_sentence = 'one two three four five six seven eight nine ten.';
+     * Str::set($long_sentence)->cropWords(5, '...'); // 'one two three four five six seven...'
+     * </code>
+     *
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.4
+     *
+     * @param int  $at
+     * @param null $append
+     *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return string
+     */
+    public function cropWords($at = 10, $append = null)
+    {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $words = explode(' ', $this->val);
+
+        if (count($words) > $at) {
+            $sentence = implode(' ', array_chunk($words, $at)[0]);
+
+            $this->val = (is_string($append)) ? sprintf('%s%s', $sentence, $append) : $sentence;
+        }
+
+        return $this;
+    }
 
     /**
      * Convert special characters to HTML entities
@@ -40,11 +114,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function e()
     {
-        $this->string = htmlspecialchars($this->string, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = htmlspecialchars($this->val, ENT_QUOTES|ENT_HTML5, 'UTF-8');
 
         return $this;
     }
@@ -58,37 +136,17 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function ee()
     {
-        $this->string = htmlspecialchars_decode($this->string, ENT_QUOTES|ENT_HTML5);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = htmlspecialchars_decode($this->val, ENT_QUOTES|ENT_HTML5);
 
         return $this;
-    }
-
-    /**
-     * The string to begin manipulating
-     *
-     * Instantiates class for chaining methods
-     *
-     * @author Luke Watts <luke@affinity4.ie>
-     *
-     * @since 0.0.3
-     *
-     * @param $str
-     *
-     * @return \Affinity4\Datatype\Str
-     */
-    public static function from($str)
-    {
-        if (self::$instance === null) {
-            self::$instance = new self;
-        }
-
-        self::$instance->string = $str;
-
-        return self::$instance;
     }
 
     /**
@@ -117,16 +175,20 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function format()
     {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
         $args = func_get_args();
 
         if (count($args) === 1 && is_array($args[0])) {
             $counter = 0;
-            if (preg_match('{}', self::$instance->string)) {
-                $new = str_replace('{}', '{-|-}', self::$instance->string);
+            if (preg_match('{}', self::$instance->val)) {
+                $new = str_replace('{}', '{-|-}', self::$instance->val);
 
                 $explode = explode('-|-', $new);
 
@@ -137,7 +199,7 @@ class Str
                     ++$counter;
                 }
 
-                $this->string = $replace . $explode[count($explode) - 1];
+                $this->val = $replace . $explode[count($explode) - 1];
             }
 
             $keys = array_keys($args[0]);
@@ -149,11 +211,11 @@ class Str
                 };
             }
 
-            $this->string = preg_replace_callback_array($patterns, $this->string);
+            $this->val = preg_replace_callback_array($patterns, $this->val);
 
             return $this;
         } else {
-            if (preg_match('/({[\d]+})/', self::$instance->string)) {
+            if (preg_match('/({[\d]+})/', self::$instance->val)) {
                 $keys = array_keys($args);
 
                 $patterns = [];
@@ -164,8 +226,8 @@ class Str
                 }
 
                 $counter = 0;
-                if (preg_match('{}', self::$instance->string)) {
-                    $new = str_replace('{}', '{-|-}', self::$instance->string);
+                if (preg_match('{}', self::$instance->val)) {
+                    $new = str_replace('{}', '{-|-}', self::$instance->val);
 
                     $explode = explode('-|-', $new);
 
@@ -176,16 +238,16 @@ class Str
                         ++$counter;
                     }
 
-                    $this->string = $replace . $explode[count($explode) - 1];
+                    $this->val = $replace . $explode[count($explode) - 1];
                 }
 
-                $this->string = preg_replace_callback_array($patterns, $this->string);
+                $this->val = preg_replace_callback_array($patterns, $this->val);
 
                 return $this;
             } else {
-                $format = str_replace('{}', '%s', $this->string);
+                $format = str_replace('{}', '%s', $this->val);
 
-                $this->string = vsprintf($format, $args);
+                $this->val = vsprintf($format, $args);
 
                 return $this;
             }
@@ -201,11 +263,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function html()
     {
-        $this->string = htmlentities($this->string, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = htmlentities($this->val, ENT_QUOTES|ENT_HTML5, 'UTF-8');
 
         return $this;
     }
@@ -219,31 +285,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function htmlDecode()
     {
-        $this->string = html_entity_decode($this->string, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
 
-        return $this;
-    }
-
-    /**
-     * Join an array. Same as implode()
-     *
-     * @see http://php.net/manual/en/function.implode.php
-     *
-     * @author Luke Watts <luke@affinity4.ie>
-     *
-     * @since 0.0.3
-     *
-     * @param string $glue
-     *
-     * @return $this
-     */
-    public function join($glue = ' ')
-    {
-        $this->string = implode($glue, $this->string);
+        $this->val = html_entity_decode($this->val, ENT_QUOTES|ENT_HTML5, 'UTF-8');
 
         return $this;
     }
@@ -257,11 +307,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function lcFirst()
     {
-        $this->string = lcfirst($this->string);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = lcfirst($this->val);
 
         return $this;
     }
@@ -275,12 +329,15 @@ class Str
      *
      * @since 0.0.3
      *
-     * @param string $str
-     * @return $this
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return \Affinity4\Datatype\Integer
      */
-    public static function length(string $str)
+    public function length()
     {
-        return strlen($str);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        return Integer::set(strlen($this->val));
     }
 
     /**
@@ -292,11 +349,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function lower()
     {
-        $this->string = strtolower($this->string);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = strtolower($this->val);
 
         return $this;
     }
@@ -311,13 +372,16 @@ class Str
      * @since  0.0.1
      *
      * @param string $needle
-     * @param string $haystack
      *
-     * @return bool
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return \Affinity4\Datatype\Integer
      */
-    public static function pos(string $needle, string $haystack)
+    public function pos(string $needle)
     {
-        return strpos($haystack, $needle);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        return Integer::set(strpos($this->val, $needle));
     }
 
     /**
@@ -329,14 +393,17 @@ class Str
      *
      * @since 0.0.3
      *
-     * @param        $str
      * @param string $delimiter
      *
-     * @return array
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return \Affinity4\Datatype\Arr
      */
-    public static function explode($str, $delimiter = '')
+    public function explode($delimiter = '')
     {
-        return explode($delimiter, $str);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        return Arr::set(explode($delimiter, $this->val));
     }
 
     /**
@@ -350,19 +417,21 @@ class Str
      *
      * @param array $delimiters
      *
-     * @return $this
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
+     * @return \Affinity4\Datatype\Arr
      */
     public function split($delimiters = [' '])
     {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
         $delims = array_map(function ($delimiter) {
             return ($delimiter == '/') ? '\/' : preg_quote($delimiter);
         }, $delimiters);
 
         $regex = '/[' . implode('', $delims) . ']/';
 
-        self::$instance->string = preg_split($regex, self::$instance->string);
-
-        return $this;
+        return Arr::set(preg_split($regex, self::$instance->val));
     }
 
     /**
@@ -372,37 +441,44 @@ class Str
      *
      * @since 0.0.3
      *
-     * @param string $str
-     *
      * @return bool|int
      */
-    public static function toInt($str)
+    public function toInt()
     {
-        if (is_callable($str)) {
-            $str = $str();
+        if (is_callable($this->val)) {
+            $val = $this->val;
+            return Integer::set($val());
         }
 
-        if (is_bool($str)) {
-            $str = ($str === true) ? 1 : 0;
+        if (is_bool($this->val)) {
+            $val = ($this->val === true) ? 1 : 0;
+
+            return Integer::set($val);
         }
 
-        if (is_object($str)) {
-            if (method_exists($str, '__toString')) {
-                return (preg_match('/[\d]+/', (string)$str, $match)) ? $match[0] : false;
+        if (is_object($this->val)) {
+            if (method_exists($this->val, '__toString')) {
+                $val = (preg_match('/[\d]+/', (string)$this->val, $match)) ? $match[0] : false;
+
+                return Integer::set($val);
             } else {
-                return false;
+                $this->val = false;
+
+                return $this;
             }
         }
 
-        if (is_array($str)) {
-            $integers = array_filter($str, function ($item) {
+        if (is_array($this->val)) {
+            $integers = array_filter($this->val, function ($item) {
                 return is_int($item);
             });
 
-            return implode('', $integers);
+            return Integer::set(implode('', $integers));
         }
 
-        return (preg_match('/[\d]+/', $str, $match)) ? (int)$match[0] : false;
+        $val = (preg_match('/[\d]+/', $this->val, $match)) ? (int) $match[0] : false;
+
+        return Integer::set($val);
     }
 
     /**
@@ -416,12 +492,15 @@ class Str
      *
      * @param null $character_mask
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function trim($character_mask = null)
     {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
 
-        $this->string = ($character_mask !== null) ? trim($this->string, $character_mask) : trim($this->string);
+        $this->val = ($character_mask !== null) ? trim($this->val, $character_mask) : trim($this->val);
 
         return $this;
     }
@@ -437,12 +516,15 @@ class Str
      *
      * @param null $character_mask
      *
+     * @@throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function trimLeft($character_mask = null)
     {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
 
-        $this->string = ($character_mask !== null) ? ltrim($this->string, $character_mask) : ltrim($this->string);
+        $this->val = ($character_mask !== null) ? ltrim($this->val, $character_mask) : ltrim($this->val);
 
         return $this;
     }
@@ -458,12 +540,15 @@ class Str
      *
      * @param null $character_mask
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function trimRight($character_mask = null)
     {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
 
-        $this->string = ($character_mask !== null) ? rtrim($this->string, $character_mask) : rtrim($this->string);
+        $this->val = ($character_mask !== null) ? rtrim($this->val, $character_mask) : rtrim($this->val);
 
         return $this;
     }
@@ -477,11 +562,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function ucFirst()
     {
-        $this->string = ucfirst($this->string);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = ucfirst($this->val);
 
         return $this;
     }
@@ -495,11 +584,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function ucWords()
     {
-        $this->string = ucwords($this->string);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = ucwords($this->val);
 
         return $this;
     }
@@ -513,11 +606,15 @@ class Str
      *
      * @since 0.0.3
      *
+     * @throws \Affinity4\Datatype\Exception\DatatypeException
+     *
      * @return $this
      */
     public function upper()
     {
-        $this->string = strtoupper($this->string);
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        $this->val = strtoupper($this->val);
 
         return $this;
     }
@@ -527,14 +624,13 @@ class Str
      *
      * @author Luke Watts <luke@affinity4.ie>
      *
-     * @since  0.0.1
+     * @since  0.0.4
      *
-     * @param string $str1
-     * @param string $str2
+     * @param string $compare
      *
      * @return array|bool
      */
-    public static function diff(string $str1, string $str2)
+    public function diff(string $compare)
     {
         // TODO
     }
