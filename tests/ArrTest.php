@@ -401,4 +401,192 @@ class ArrTest extends TestCase
     {
         Arr::set(1)->unset([1, 2, 3])->val;
     }
+
+    public function providerTestGet(): array
+    {
+        return [
+            ['Found me!', 'another.deeply.nested.thing'],
+            [[1, 2, 3], 'something.deeply.nested.things\.with\.dots']
+        ];
+    }
+
+    /**
+     * @dataProvider providerTestGet
+     *
+     * @param mixed  $expected
+     * @param string $pattern
+     */
+    public function testGet($expected, string $pattern)
+    {
+        $data = [
+            'some' => [
+                [
+                    'deeply' => [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ],
+                    'thing' => 'else'
+                ],
+                [
+                    'thing' => 'else'
+                ]
+            ],
+            'something' => [
+                'deeply' => [
+                    'nested' => [
+                        'things.with.dots' => [1, 2, 3]
+                    ]
+                ]
+            ],
+            'another' => [
+                'deeply' => [
+                    'nested' => [
+                        'thing' => 'Found me!'
+                    ]
+                ]
+            ]
+        ];
+
+        $actual = Arr::set($data)->get($pattern)->val;
+
+        $this->assertEquals($expected, $actual);
+    }
+
+    public function testGetSearchPatternArray()
+    {
+        $data = [
+            'some' => [
+                [
+                    'deeply' => [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ],
+                    'thing' => 'else'
+                ],
+                [
+                    'thing' => 'else'
+                ]
+            ],
+            'something' => [
+                'deeply' => [
+                    'nested' => [
+                        'things.with.dots' => [1, 2, 3]
+                    ]
+                ]
+            ],
+            'another' => [
+                'deeply' => [
+                    'nested' => [
+                        'thing' => 'found me'
+                    ]
+                ]
+            ]
+        ];
+
+        $pattern = 'some.{\d+}.deeply.nested.{.+}.another.{.+}.thing\.with\.escaped\.dots';
+        $expected = [
+            'some',
+            '/\d+/',
+            'deeply',
+            'nested',
+            '/.+/',
+            'another',
+            '/.+/',
+            'thing.with.escaped.dots'
+        ];
+
+        $Arr = Arr::set($data);
+        $ReflectionMethod = new \ReflectionMethod($Arr, 'getSearchPatternArray');
+        $ReflectionMethod->setAccessible(true);
+
+        $actual = $ReflectionMethod->invokeArgs($Arr, [$pattern]);
+
+        $this->assertEquals($expected, $actual);
+    }
+
+    public function providerTestSearch(): array
+    {
+        return [
+            [
+                [
+                    [1, 2, 3],
+                    [1, 2, 3]
+                ],
+                '{some.*}.{\d+}.{deep.*}.nested.things\.with\.dots'
+            ],
+            [
+                [
+                    'else',
+                    'else'
+                ],
+                'some.{\d+}.thing'
+            ],
+            [
+                [
+                    [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ],
+                    [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ]
+                ],
+                'some.{\d+}.{deep.*}'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider providerTestSearch
+     *
+     * @param mixed $expected
+     * @param string $pattern
+     */
+    public function testSearch($expected, string $pattern)
+    {
+        $data = [
+            'some' => [
+                [
+                    'deeply' => [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ],
+                    'deep' => [
+                        'nested' => [
+                            'things.with.dots' => [1, 2, 3]
+                        ]
+                    ],
+                    'thing' => 'else'
+                ],
+                [
+                    'thing' => 'else'
+                ],
+                'thing' => 'else'
+            ],
+            'something' => [
+                'deeply' => [
+                    'nested' => [
+                        'things.with.dots' => [1, 2, 3]
+                    ]
+                ]
+            ],
+            'another' => [
+                'deeply' => [
+                    'nested' => [
+                        'thing' => 'found me'
+                    ]
+                ]
+            ]
+        ];
+
+        $actual = Arr::set($data)->search($pattern)->val;
+        
+        $this->assertEquals($expected, $actual);
+    }
 }

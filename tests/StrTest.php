@@ -753,7 +753,43 @@ class StrTest extends TestCase
 			['-123-', '-', '-123'],
 			['123-', '-', '123'],
 		];
-	}
+    }
+    
+    /**
+     * @dataProvider providerTestStartsWith
+     */
+    public function testStartsWith(string $string, string $starts_with)
+    {
+        $this->assertTrue(Str::set($string)->startsWith($starts_with));
+    }
+
+    public function providerTestStartsWith(): array
+    {
+        return [
+            ['something', 'some'],
+            ['some', 's'],
+            ['', ''],
+            ['/regex/', '/']
+        ];
+    }
+
+    /**
+     * @dataProvider providerTestEndsWith
+     */
+    public function testEndsWith(string $string, string $ends_with)
+    {
+        $this->assertTrue(Str::set($string)->endsWith($ends_with));
+    }
+
+    public function providerTestEndsWith(): array
+    {
+        return [
+            ['something', 'thing'],
+            ['thing', 'g'],
+            ['', ''],
+            ['/regex/', '/']
+        ];
+    }
 }
 
 /**

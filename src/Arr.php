@@ -273,6 +273,242 @@ class Arr extends Datatype
     }
 
     /**
+     * Get
+     * 
+     * A simplified version of CakePHP's Hash::get method
+     *
+     * @param string $path
+     * 
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.5
+     * 
+     * @throws \Exception
+     * @throws \InvalidArgumentException
+     * 
+     * @return \Affinity4\Datatype\Arr
+     */
+    public function get(string $path): \Affinity4\Datatype\Arr
+    {
+        $this->exception('array', $this->val, __CLASS__, __FUNCTION__);
+
+        if (!(is_array($this->val) || $this->val instanceof ArrayAccess)) {
+            throw new \InvalidArgumentException('Invalid data type, must be an array or \ArrayAccess instance.');
+        }
+
+        $parts = $this->getSearchPatternArray($path);
+
+        switch (count($parts)) {
+            case 1:
+                $this->val = isset($this->val[$parts[0]]) ? $this->val[$parts[0]] : null;
+            break;
+            case 2:
+                $this->val = isset($this->val[$parts[0]][$parts[1]]) ? $this->val[$parts[0]][$parts[1]] : null;
+            break;
+            case 3:
+                $this->val = isset($this->val[$parts[0]][$parts[1]][$parts[2]]) ? $this->val[$parts[0]][$parts[1]][$parts[2]] : null;
+            break;
+            default:
+                foreach ($parts as $key) {
+                    if ((is_array($this->val) || $this->val instanceof ArrayAccess) && isset($this->val[$key])) {
+                        $this->val = $this->val[$key];
+                    } else {
+                        $this->val = null;
+                    }
+                }
+            break;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Search
+     * 
+     * Inspired by CakePHP's Hash::extract method
+     * but uses regex instead of {s}, {d}, {*}
+     * 
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.5
+     *
+     * @param string $pattern
+     * @param string $delimiter
+     * 
+     * @throws \Exception
+     * @throws \InvalidArgumentException
+     * 
+     * @return mixed
+     */
+    public function search(string $pattern, string $delimiter = '/')
+    {
+        $this->exception('array', $this->val, __CLASS__, __FUNCTION__);
+
+        if (empty($pattern)) {
+            return $this;
+        }
+
+        if (!preg_match('/(\.({.*})\.)/', $pattern)) {
+            $this->val = $this->get($pattern)->val;
+        } else {
+            $pattern_segments = $this->getSearchPatternArray($pattern, $delimiter);
+
+            $search = [];
+            $top_level_keys = [];
+            for ($i = 0; count($pattern_segments) > $i; $i++) {
+                $segment = $pattern_segments[$i];
+                switch($i) {
+                    case 0 :
+                        // If first segment then it must check all items against segment
+                        // If it cannot find anything for the first then exit
+                        // If it finds one or more it should put them all in the search variable
+                        // The search variable is then what is searched through
+                        foreach ($this->val as $k => $v) {
+                            if (Str::set($segment)->startsWith('/') && Str::set($segment)->endsWith('/')) {
+                                // is regex
+                                if (preg_match($segment, $k) === 1) {
+                                    $top_level_keys[] = $k;
+                                    $search[$k] = $v;
+                                }
+                            } else {
+                                // Normal string
+                                if ($segment === $k) {
+                                    $top_level_keys[] = $k;
+                                    $search[$k] = $v;
+                                }
+                            }
+                        }
+                    break;
+                    case 1:
+                        $segment = $pattern_segments[$i];
+                        $top_level_keys = [];
+                        $next = [];
+                        foreach ($search as $k => $v) {
+                            $top_level_keys[] = $k;
+                            if (is_array($v)) {
+                                foreach ($v as $_k => $_v) {
+                                    if (Str::set($segment)->startsWith('/') && Str::set($segment)->endsWith('/')) {
+                                        if (preg_match($segment, $_k) === 1) {
+                                            $next[][$_k] = $_v;
+                                        }
+                                    } else {
+                                        if ($segment === $k) {
+                                            $next[][$_k] = $_v;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        $search = $next;
+                    break;
+                    case 2:
+                        $segment = $pattern_segments[$i];
+                        $top_level_keys = [];
+                        $next = [];
+                        foreach ($search as $search_v) {
+                            foreach ($search_v as $k => $v) {
+                                if (!is_array($v)) {
+                                    $v = [$v];
+                                }
+
+                                foreach ($v as $_k => $_v) {
+                                    $top_level_keys[] = $_k;
+                                    if (Str::set($segment)->startsWith('/') && Str::set($segment)->endsWith('/')) {
+                                        if (preg_match($segment, $_k) === 1) {
+                                            $next[] = $_v;
+                                        }
+                                    } else {
+                                        if ($segment === $_k) {
+                                            $next[] = $_v;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        $search = $next;
+                    break;
+                    default:
+                        $segment = $pattern_segments[$i];
+                        $top_level_keys = [];
+                        $next = [];
+                        $this->val = $search;
+                        foreach ($this->val as $items) {
+                            foreach ($items as $k => $v) {
+                                if (Str::set($segment)->startsWith('/') && Str::set($segment)->endsWith('/')) {
+                                    if (preg_match($segment, $k) === 1) {
+                                        $next[] = $v;
+                                    }
+                                } else {
+                                    if ($segment === $k) {
+                                        $next[] = $v;
+                                    }
+                                }
+                            }
+                        }
+                        $search = $next;
+                    break;
+                }
+            }
+
+            $this->val = $search;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Parse Pattern
+     * 
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.5
+     *
+     * @param string $pattern
+     * @param string $deliminter
+     * 
+     * @return array
+     */
+    private function getSearchPatternArray(string $pattern, string $delimiter = '/'): array
+    {
+        $token_map = [
+            '<T_PRESERVE_DOT>' => [
+                'preserve' => '\.',
+                'token' => '<T_PRESERVE_DOT>'
+            ],
+            '<T_PRESERVE_REGEX_DOT>' => [
+                'preserve' => '.',
+                'token' => '<T_PRESERVE_REGEX_DOT>'
+            ]
+        ];
+
+        $pattern_segments = explode('}.', $pattern);
+
+        $pattern_segments = array_map(function($segment) use ($token_map) {
+            return preg_replace('/(.*\.?{.*)(\.)(.*)/', "\\1{$token_map['<T_PRESERVE_REGEX_DOT>']['token']}\\3", $segment);
+        }, $pattern_segments);
+
+        $pattern = implode('}.', $pattern_segments);
+
+        $pattern = str_replace($token_map['<T_PRESERVE_DOT>']['preserve'], $token_map['<T_PRESERVE_DOT>']['token'], $pattern);
+
+        $pattern_segments = explode('.', $pattern);
+
+        $pattern_segments = array_map(function($segment) use ($token_map, $delimiter) {
+            $segment = str_replace($token_map['<T_PRESERVE_REGEX_DOT>']['token'], $token_map['<T_PRESERVE_REGEX_DOT>']['preserve'], $segment);
+            $segment = str_replace($token_map['<T_PRESERVE_DOT>']['token'], '.', $segment);
+            $segment = str_replace('{', $delimiter, $segment);
+            $segment = str_replace('}', $delimiter, $segment);
+
+            return $segment;
+        }, $pattern_segments);
+
+
+        return $pattern_segments;
+    }
+
+    /**
      * Convert array to \Affinity4\Datatype\Json object
      *
      * @author Luke Watts <luke@affinity4.ie>

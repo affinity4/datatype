@@ -634,4 +634,44 @@ class Str extends Datatype
     {
         // TODO
     }
+
+    /**
+     * Starts With
+     * 
+     * Check if string starts with string
+     * 
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.5
+     *
+     * @param string $starts_with
+     * 
+     * @return boolean
+     */
+    public function startsWith(string $starts_with): bool
+    {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        return (preg_match('/^' . preg_quote($starts_with, '/') . '/', $this->val) === 1);
+    }
+
+    /**
+     * Ends With
+     * 
+     * Check if string ends with string
+     * 
+     * @author Luke Watts <luke@affinity4.ie>
+     *
+     * @since 0.0.5
+     *
+     * @param string $ends_with
+     * 
+     * @return boolean
+     */
+    public function endsWith(string $ends_with): bool
+    {
+        $this->exception('string', $this->val, __CLASS__, __FUNCTION__);
+
+        return (preg_match('/' . preg_quote($ends_with, '/') . '$/', $this->val) === 1);
+    }
 }
